@@ -1,0 +1,115 @@
+DESIGN DECISION LOG — Customer Churn Prediction
+================================================
+All scores below are 5-fold stratified cross-validation means on the training
+set (80% of the data), unless marked "test". Full tables are saved in
+reports/cv_model_comparison.csv and reports/cv_feature_selection.csv.
+
+
+------------------------------------------------------------
+DECISION 1 — Model selection
+------------------------------------------------------------
+Decision:
+Use Logistic Regression with class_weight="balanced" as the final model.
+
+Reason:
+The business goal is to find customers who are about to leave, so the model
+must catch as many churners as possible (high recall) while keeping a
+reasonable balance with false alarms (F1). A linear model is also fast,
+easy to retrain and easy to explain to non-technical stakeholders through its
+coefficients. Balanced class weights counter the 26.5% / 73.5% class imbalance.
+
+Evidence:
+Five models were compared (CV means):
+  Model                            Accuracy  Recall  F1     ROC-AUC
+  Baseline (majority class)        0.735     0.000   0.000  0.500
+  Logistic Regression              0.802     0.544   0.592  0.846
+  Logistic Regression (balanced)   0.748     0.801   0.628  0.846
+  Decision Tree (max_depth=5)      0.791     0.513   0.565  0.829
+  Random Forest (300 trees)        0.804     0.498   0.574  0.845
+The balanced Logistic Regression had the best F1 and by far the best recall,
+with ROC-AUC tied for best. The more complex Random Forest gave no gain on
+any churn-focused metric, so its extra complexity was not justified.
+On the held-out test set the chosen model scored: recall 0.783, F1 0.614,
+ROC-AUC 0.842 — close to the CV scores, so it is not overfitting.
+
+
+------------------------------------------------------------
+DECISION 2 — Evaluation metric
+------------------------------------------------------------
+Decision:
+Use F1-score for the churn class as the primary metric, with recall and
+ROC-AUC as supporting metrics. Accuracy is reported but not used to choose
+between models.
+
+Reason:
+The dataset is imbalanced (only 26.5% churn). Accuracy rewards predicting the
+majority class and hides whether churners are actually found. F1 balances
+precision and recall on the class we care about; recall shows how many
+churners are caught; ROC-AUC shows how well the model ranks customers by risk
+independently of the decision threshold.
+
+Evidence:
+The majority-class baseline reaches 73.5% accuracy while catching 0 churners
+(recall 0.000, F1 0.000). Also, the unweighted Random Forest has the highest
+accuracy (0.804) but misses about half of all churners (recall 0.498).
+Choosing by accuracy would therefore have selected a worse model for the
+business goal.
+
+
+------------------------------------------------------------
+DECISION 3 — Feature selection
+------------------------------------------------------------
+Decision:
+Use all 19 customer features. Drop only customerID.
+
+Reason:
+customerID is a unique identifier with no predictive meaning and would only
+let a model memorise rows. During exploration, gender and PhoneService showed
+almost no difference in churn rate between their categories, so removing them
+was tested. Since removing them brought no measurable benefit, the full set
+was kept to keep the pipeline simple and avoid discarding information.
+
+Evidence:
+Balanced Logistic Regression, CV means:
+  Feature set                              F1     ROC-AUC  F1 std
+  All 19 features                          0.628  0.846    0.023
+  Without gender & PhoneService (17)       0.629  0.846    0.023
+The difference in F1 (0.001) is far smaller than the fold-to-fold standard
+deviation (0.023), so it is noise, not an improvement.
+
+
+------------------------------------------------------------
+DECISION 4 — Handling blank TotalCharges values
+------------------------------------------------------------
+Decision:
+Convert TotalCharges to numeric and fill the 11 blank values with 0.
+
+Reason:
+Dropping rows loses data and mean-imputation would invent charges. All 11
+blank rows belong to customers with tenure = 0, i.e. new customers who have
+not yet been billed, so their true total charge is 0.
+
+Evidence:
+In the notebook (Section 1), every row where TotalCharges is not numeric has
+tenure = 0. After this fix the cleaned dataset has 0 missing values and all
+7,043 customers are kept.
+
+
+------------------------------------------------------------
+DECISION 5 — Validation strategy
+------------------------------------------------------------
+Decision:
+Stratified 80/20 train/test split (random_state=42). Compare models with
+5-fold stratified cross-validation on the training set only; use the test set
+once, for the final model.
+
+Reason:
+Stratification keeps the churn rate the same in every split. Choosing models
+on CV rather than on the test set prevents "tuning to the test set", so the
+final test score is an honest estimate of performance on new customers.
+A fixed seed makes every result reproducible.
+
+Evidence:
+Train and test churn rates are both 26.5%. The final model's test F1 (0.614)
+is within one CV standard deviation of its CV F1 (0.628 ± 0.023), confirming
+the CV estimate was reliable.
