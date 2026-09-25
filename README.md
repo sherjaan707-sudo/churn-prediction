@@ -72,7 +72,7 @@ Five models were compared with 5-fold stratified cross-validation — a majority
 **1. Clone the repository**
 
 ```bash
-git clone https://github.com/<your-username>/churn-prediction.git
+git clone https://github.com/sherjaan707-sudo/churn-prediction.git
 cd churn-prediction
 ```
 
