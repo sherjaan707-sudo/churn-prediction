@@ -27,7 +27,9 @@ churn-prediction/
 │
 ├── README.md                        # This file
 ├── decision_log.txt                 # Design decisions with reasons and evidence
-├── requirements.txt                 # Python dependencies
+├── requirements.txt                 # Python dependencies (pip)
+├── pyproject.toml                   # Project metadata + dependencies (modern standard, used by uv)
+├── uv.lock                          # Exact pinned versions of every package (uv)
 └── .gitignore
 ```
 
@@ -86,6 +88,17 @@ python -m venv .venv
 source .venv/bin/activate
 
 pip install -r requirements.txt
+```
+
+**Alternative to step 2 — using [uv](https://docs.astral.sh/uv/) (faster, exact versions)**
+
+`pyproject.toml` declares the dependencies and `uv.lock` pins the exact version of every package, so everyone gets an identical environment.
+
+```bash
+pip install uv          # one-time
+uv sync                 # creates .venv and installs the locked versions
+uv run jupyter notebook notebooks/churn_experiment.ipynb
+uv run python models/model.py
 ```
 
 **3. Run the experiment notebook**

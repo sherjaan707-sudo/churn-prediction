@@ -1,0 +1,21 @@
+[project]
+name = "churn-prediction"
+version = "0.1.0"
+description = "Customer churn prediction with scikit-learn: documented experiments, design decision log and reproducible project structure."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Tayyab Akram" }]
+dependencies = [
+    "pandas>=2.0",
+    "scikit-learn>=1.3",
+    "matplotlib>=3.7",
+    "jupyter>=1.0",
+]
+
+[project.urls]
+Repository = "https://github.com/sherjaan707-sudo/churn-prediction"
+
+# This is an application (notebook + scripts), not an installable library,
+# so uv should only manage the environment, not build/install the project.
+[tool.uv]
+package = false
